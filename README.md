@@ -2,7 +2,7 @@
  
      Learn deep metric for image retrieval or other information retrieval.
 
-## More concise loss function done !!!
+## More concise loss function done, updated to  Pytorch1.0 !!!
            
 ## Deep metric methods implemented in this repositories:
 
@@ -14,7 +14,7 @@
 
 - Binomial BinDeviance Loss [4]
 
-- Distance Weighted Sampling [5] 
+- Distance Weighted Sampling [5] (deleted for poor performance) 
 
 - NCA Loss [6]
  
