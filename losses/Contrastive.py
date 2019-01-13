@@ -6,72 +6,42 @@ from torch.autograd import Variable
 import numpy as np
 
 
-def similarity(inputs_):
-    # Compute similarity mat of deep feature
-    # n = inputs_.size(0)
-    sim = torch.matmul(inputs_, inputs_.t())
-    return sim
-
-
 class ContrastiveLoss(nn.Module):
-    def __init__(self, margin=0.5, mean=None, **kwargs):
+    def __init__(self, margin=0.5, **kwargs):
         super(ContrastiveLoss, self).__init__()
         self.margin = margin
-        self.mean = mean
 
     def forward(self, inputs, targets):
         n = inputs.size(0)
         # Compute similarity matrix
-        sim_mat = similarity(inputs)
-        # print(sim_mat)
-        targets = targets.cuda()
-        # split the positive and negative pairs
-        eyes_ = Variable(torch.eye(n, n)).cuda()
-        # eyes_ = Variable(torch.eye(n, n))
-        pos_mask = targets.expand(n, n).eq(targets.expand(n, n).t())
-        neg_mask = eyes_.eq(eyes_) - pos_mask
-        pos_mask = pos_mask - eyes_.eq(1)
-
-        pos_sim = torch.masked_select(sim_mat, pos_mask)
-        neg_sim = torch.masked_select(sim_mat, neg_mask)
-
-        num_instances = len(pos_sim)//n + 1
-        num_neg_instances = n - num_instances
-
-        pos_sim = pos_sim.resize(len(pos_sim)//(num_instances-1), num_instances-1)
-        neg_sim = neg_sim.resize(
-            len(neg_sim) // num_neg_instances, num_neg_instances)
-
+        sim_mat = torch.matmul(inputs, inputs.t())
+        targets = targets
         loss = list()
         c = 0
 
-        for i, pos_pair_ in enumerate(pos_sim):
-            # print(i)
-            pos_pair = pos_pair_
-            neg_pair_ = torch.sort(neg_sim[i])[0]
+        for i in range(n):
+            pos_pair_ = torch.masked_select(sim_mat[i], targets==targets[i])
+
+            #  move itself
+            pos_pair_ = torch.masked_select(pos_pair_, pos_pair_ < 1)
+            neg_pair_ = torch.masked_select(sim_mat[i], targets!=targets[i])
+
+            pos_pair_ = torch.sort(pos_pair_)[0]
+            neg_pair_ = torch.sort(neg_pair_)[0]
 
             neg_pair = torch.masked_select(neg_pair_, neg_pair_ > self.margin)
-            # pos_pair = torch.masked_select(pos_pair_, pos_pair_ < neg_pair_[-1] + 0.05)
             
             neg_loss = 0
-            if self.mean is None:
-                # print('sum is ok')
-                pos_loss = torch.sum(-pos_pair+1) 
-                if len(neg_pair) > 0:
-                    neg_loss = torch.sum(neg_pair)
-                loss.append(pos_loss + neg_loss)
 
-            else:
-                pos_loss = torch.mean(-pos_pair+1) 
-                if len(neg_pair) > 0:
-                    neg_loss = torch.mean(neg_pair)
-                loss.append(pos_loss + neg_loss)
-
+            pos_loss = torch.sum(-pos_pair_+1) 
+            if len(neg_pair) > 0:
+                neg_loss = torch.sum(neg_pair)
+            loss.append(pos_loss + neg_loss)
 
         loss = torch.sum(torch.cat(loss))/n
         prec = float(c)/n
-        neg_d = torch.mean(neg_sim).data[0]
-        pos_d = torch.mean(pos_sim).data[0]
+        neg_d = torch.mean(neg_pair_).item()
+        pos_d = torch.mean(pos_pair_).item()
         return loss, prec, pos_d, neg_d
 
 

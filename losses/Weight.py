@@ -6,12 +6,6 @@ from torch.autograd import Variable
 import numpy as np
 
 
-def similarity(inputs_):
-    # Compute similarity mat of deep feature
-    # n = inputs_.size(0)
-    sim = torch.matmul(inputs_, inputs_.t())
-    return sim
-
 class WeightLoss(nn.Module):
     def __init__(self, alpha=10, beta=2, margin=0.5, hard_mining=None, **kwargs):
         super(WeightLoss, self).__init__()
@@ -22,43 +16,24 @@ class WeightLoss(nn.Module):
 
     def forward(self, inputs, targets):
         n = inputs.size(0)
-
-        # Compute similarity matrix
-        sim_mat = similarity(inputs)
-
-        # print(sim_mat)
-        targets = targets.cuda()
-
-        # split the positive and negative pairs
-
-        eyes_ = Variable(torch.eye(n, n)).cuda()
-        pos_mask = targets.expand(n, n).eq(targets.expand(n, n).t())
-        neg_mask = eyes_.eq(eyes_) - pos_mask
-        pos_mask = pos_mask - eyes_.eq(1)
-
-        pos_sim = torch.masked_select(sim_mat, pos_mask)
-        neg_sim = torch.masked_select(sim_mat, neg_mask)
-
-        num_instances = len(pos_sim)//n + 1
-        num_neg_instances = n - num_instances
-
-        pos_sim = pos_sim.resize(len(pos_sim)//(num_instances-1), num_instances-1)
-        neg_sim = neg_sim.resize(
-            len(neg_sim) // num_neg_instances, num_neg_instances)
+        sim_mat = torch.matmul(inputs, inputs.t())
+        targets = targets
 
         base = 0.5
-
         loss = list()
         c = 0
-        scale_value = self.margin
 
-        for i, pos_pair_ in enumerate(pos_sim):
-            # print(i)
+        for i in range(n):
+            pos_pair_ = torch.masked_select(sim_mat[i], targets==targets[i])
+
+            #  move itself
+            pos_pair_ = torch.masked_select(pos_pair_, pos_pair_ < 1)
+            neg_pair_ = torch.masked_select(sim_mat[i], targets!=targets[i])
+
             pos_pair_ = torch.sort(pos_pair_)[0]
-            neg_pair_ = torch.sort(neg_sim[i])[0]
+            neg_pair_ = torch.sort(neg_pair_)[0]
 
             if self.hard_mining is not None:
-                # print(self.alpha,  self.beta, self.margin)
                 neg_pair = torch.masked_select(neg_pair_, neg_pair_ + 0.1 > pos_pair_[0])
                 pos_pair = torch.masked_select(pos_pair_, pos_pair_ - 0.1 <  neg_pair_[-1])
                 
@@ -78,14 +53,12 @@ class WeightLoss(nn.Module):
                 neg_loss = 2.0/self.alpha * torch.log(1 + torch.sum(torch.exp(self.alpha * (neg_pair - base))))
 
                 loss.append(pos_loss + neg_loss)
-
-        loss = torch.sum(torch.cat(loss))/n
+            
+        loss = sum(loss)/n
         prec = float(c)/n
-        neg_d = torch.mean(neg_sim).data[0]
-        pos_d = torch.mean(pos_sim).data[0]
-
-        return loss, prec, pos_d, neg_d
-
+        mean_neg_sim = torch.mean(neg_pair_).item()
+        mean_pos_sim = torch.mean(pos_pair_).item()
+        return  mean_pos_sim, mean_neg_sim, prec, loss
 
 def main():
     data_size = 32

@@ -1,8 +1,8 @@
 # Deep Metric Learning in PyTorch
  
-     Learn a deep metric which can be used in image retrieval.
+     Learn deep metric for image retrieval or other information retrieval.
 
-
+## More concise loss function done !!!
            
 ## Deep metric methods implemented in this repositories:
 
