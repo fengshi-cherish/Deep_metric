@@ -18,7 +18,7 @@
 
 - NCA Loss [6]
  
- -WeightLoss  (accepted by CVPR2019, will be public soon.)
+      -WeightLoss  (accepted by CVPR2019, will be public soon.)
  
 
 ## Dataset
