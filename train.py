@@ -77,9 +77,18 @@ def main(args):
 
     print('initial model is save at %s' % save_dir)
 
-    optimizer = torch.optim.Adam(param_groups, lr=args.lr,
+    if args.optim == 'sgd':
+        optimizer = torch.optim.SGD(param_groups, args.lr, 
+                                    momentum=args.momentum, weight_decay=args.weight_decay,
+                                    nesterov=args.nesterov)
+    elif args.optim == 'adam':
+        optimizer = torch.optim.Adam(param_groups, lr=args.lr,
                                  weight_decay=args.weight_decay)
 
+    else:
+        raise ValueError('Unsupported optimizer type')
+    
+    
     criterion = losses.create(args.loss, margin=args.margin, alpha=args.alpha, base=args.loss_base).cuda()
 
     # Decor_loss = losses.create('decor').cuda()
@@ -98,7 +107,7 @@ def main(args):
               optimizer=optimizer, train_loader=train_loader, args=args)
 
         if epoch == 1:
-            optimizer.param_groups[0]['lr_mul'] = 0.1
+            optimizer.param_groups[0]['lr_mult'] = 0.1
         
         if (epoch+1) % args.save_step == 0 or epoch==0:
             if use_gpu:
@@ -155,7 +164,7 @@ if __name__ == '__main__':
                         help='loss for training network')
     parser.add_argument('--epochs', default=600, type=int, metavar='N',
                         help='epochs for training process')
-    parser.add_argument('--save_step', default=50, type=int, metavar='N',
+    parser.add_argument('--save_step', default=20, type=int, metavar='N',
                         help='number of epochs to save model')
 
     # Resume from checkpoint
@@ -177,7 +186,9 @@ if __name__ == '__main__':
     parser.add_argument('--weight-decay', type=float, default=2e-4)
 
     parser.add_argument('--loss_base', type=float, default=0.75)
-
+    parser.add_argument('--optim', type=str, default='sgd')
+    parser.add_argument('--nesterov', action='store_true')
+    parser.add_argument('--scheduler', default='cosine')
 
 
 

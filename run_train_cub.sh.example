@@ -30,8 +30,9 @@ ALPHA=40
 LR=1e-5
 BatchSize=80
 RATIO=0.16
+OPTIM=sgd
 
-SAVE_DIR=${CHECKPOINTS}/${LOSS}/${DATA}/${NET}-DIM-${DIM}-lr${LR}-ratio-${RATIO}-BatchSize-${BatchSize}
+SAVE_DIR=${CHECKPOINTS}/${LOSS}/${DATA}/${NET}-DIM-${DIM}-lr${LR}-ratio-${RATIO}-BatchSize-${BatchSize}-OPTIM-${OPTIM}
 if_exist_mkdir ${SAVE_DIR}
 
 
@@ -42,6 +43,7 @@ CUDA_VISIBLE_DEVICES=2 python train.py --net ${NET} \
 --data_root ${DATA_ROOT} \
 --init random \
 --lr $LR \
+--optim ${OPTIM} \
 --dim $DIM \
 --alpha $ALPHA \
 --num_instances   5 \
@@ -58,7 +60,7 @@ echo "Begin Testing!"
 # POOL_FEATURE=True # if False, just comment this line !
 echo ${POOL_FEATURE}
 
-Model_LIST=`seq  50 50 400`
+Model_LIST=`seq  100 20 400`
 for i in $Model_LIST; do
     CUDA_VISIBLE_DEVICES=2 python test.py --net ${NET} \
     --data $DATA \
