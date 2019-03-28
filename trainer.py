@@ -33,7 +33,7 @@ def train(epoch, model, criterion, optimizer, train_loader, args):
 
         embed_feat = model(inputs)
 
-        loss, inter_, dist_ap, dist_an = criterion(embed_feat, labels)
+        dist_ap, dist_an, prec, loss = criterion(embed_feat, labels)
 
         if args.orth_reg != 0:
             loss = orth_reg(net=model, loss=loss, cof=args.orth_reg)
@@ -45,8 +45,9 @@ def train(epoch, model, criterion, optimizer, train_loader, args):
         batch_time.update(time.time() - end)
         end = time.time()
 
-        losses.update(loss.data[0])
-        accuracy.update(inter_)
+        losses.update(loss.data)
+        #losses.update(loss.data[0])
+        accuracy.update(prec)
         pos_sims.update(dist_ap)
         neg_sims.update(dist_an)
 
